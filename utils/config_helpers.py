@@ -66,8 +66,35 @@ def get_supported_networks():
     }
 
 
-def get_api_keys(provider):
+def get_api_keys(provider, network=None):
+    """Get API keys from config file.
+    If network is specified, returns list of API keys for that network.
+    Otherwise returns dict of all API keys."""
     config = load_config()
-    if provider not in config:
-        return {}
-    return {key: value.strip() for key, value in config[provider].items()}
+    
+    if network:
+        # Get all keys for specific network
+        keys = []
+        i = 1
+        while True:
+            key = config[provider].get(f"{network}_key{i}")
+            if not key or key.startswith(("<", "YOUR_")):
+                break
+            keys.append(key)
+            i += 1
+        return keys if keys else [config[provider].get(f"{network}_key1")]
+    else:
+        # Get all keys for all networks
+        keys = {}
+        networks = config["DEFAULT"][f"{provider}_NETWORKS"].split(",")
+        for network in networks:
+            network_keys = []
+            i = 1
+            while True:
+                key = config[provider].get(f"{network}_key{i}")
+                if not key or key.startswith(("<", "YOUR_")):
+                    break
+                network_keys.append(key)
+                i += 1
+            keys[f"{network}_key"] = network_keys[0] if network_keys else config[provider].get(f"{network}_key1")
+        return keys

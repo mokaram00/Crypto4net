@@ -97,21 +97,32 @@ def setup_config():
 
     config["DEFAULT"]["ExplorerAPI_NETWORKS"] = ",".join(chosen_networks)
 
-    # Add API keys for each chosen network
+    # Add multiple API keys for each chosen network
     config["ExplorerAPI"] = {}
     for network in chosen_networks:
+        print(f"\n🔑 Setup API keys for {network.upper()}:")
         while True:
-            key = input(f"🔑 Enter the API key for {network} (cannot be empty): ").strip()
-            if key:
-                config["ExplorerAPI"][f"{network}_key"] = key
-                break
-            else:
-                print(f"❌ API key for {network} is required. Please provide a valid key.")
+            try:
+                num_keys = int(input(f"   How many API keys do you want to add for {network}? (1-5): "))
+                if 1 <= num_keys <= 5:
+                    break
+                print("❌ Please enter a number between 1 and 5.")
+            except ValueError:
+                print("❌ Please enter a valid number.")
+
+        for i in range(1, num_keys + 1):
+            while True:
+                key = input(f"   Enter API key #{i} for {network}: ").strip()
+                if key:
+                    config["ExplorerAPI"][f"{network}_key{i}"] = key
+                    break
+                else:
+                    print(f"❌ API key #{i} for {network} is required. Please provide a valid key.")
 
     # Setup for mnemonic word count
     while True:
         try:
-            word_count = int(input("👉 Enter the number of words for the mnemonic (12, 15, 18, 21, 24): "))
+            word_count = int(input("\n👉 Enter the number of words for the mnemonic (12, 15, 18, 21, 24): "))
             if word_count not in [12, 15, 18, 21, 24]:
                 raise ValueError("Word count must be one of 12, 15, 18, 21, 24.")
             break
@@ -135,7 +146,7 @@ def setup_config():
         config.write(config_file)
 
     set_active_config(config_path)  # Save new config as active
-    print("✅ Configuration setup is complete.")
+    print("\n✅ Configuration setup is complete.")
     return config_path
 
 
@@ -172,27 +183,40 @@ def validate_config(config_path):
 
     # Validate API keys and networks
     networks = config["DEFAULT"].get("ExplorerAPI_NETWORKS", "").split(",")
-    missing_keys = []
+    missing_networks = []
+    
     for network in networks:
-        key_value = config["ExplorerAPI"].get(f"{network}_key", "<missing_key>").strip()
-        if key_value in ("<missing_key>", ""):
-            missing_keys.append(network)
-            config["ExplorerAPI"][f"{network}_key"] = "<missing_key>"
+        # Check for at least one valid API key per network
+        has_valid_key = False
+        for i in range(1, 6):  # Check up to 5 possible keys
+            key_name = f"{network}_key{i}"
+            key_value = config["ExplorerAPI"].get(key_name, "").strip()
+            if key_value and not key_value.startswith("<") and not key_value.startswith("YOUR_"):
+                has_valid_key = True
+                break
+        
+        if not has_valid_key:
+            missing_networks.append(network)
+        
+        # Remove old-style single key if present
+        old_key = f"{network}_key"
+        if old_key in config["ExplorerAPI"]:
+            del config["ExplorerAPI"][old_key]
             config_updated = True
 
-    if missing_keys:
-        print(f"⚠️  Missing API keys for ExplorerAPI: {', '.join(missing_keys)}")
+    if missing_networks:
+        print(f"⚠️  No valid API keys found for networks: {', '.join(missing_networks)}")
         all_valid = False
 
     # Save updated configuration if any changes were made
     if config_updated:
         with open(config_path, "w") as config_file:
             config.write(config_file)
-        print("⚠️  Configuration file updated with defaults.")
+        print("⚠️  Configuration file updated.")
 
     if all_valid:
         print("✅ Configuration is valid.")
     else:
-        print("❌ Configuration is incomplete. Please update placeholders in the config file.")
+        print("❌ Configuration is incomplete. Please add valid API keys for all networks.")
 
     return all_valid

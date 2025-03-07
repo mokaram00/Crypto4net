@@ -1,5 +1,6 @@
 import time
 import asyncio
+import sys
 from datetime import datetime, timedelta
 from config import ( 
     install_requirements, 
@@ -20,6 +21,12 @@ from utils import (
 
 
 async def main():
+    # Check if in test mode
+    if len(sys.argv) > 1 and sys.argv[1] == "TEST_MODE":
+        print_status("Running in TEST MODE...", symbol="🧪")
+        await run_checks({"Bip44": {}}, "TEST_MODE")
+        return
+
     # Step 1: Check for internet connection
     print_status("Checking for internet connection...", symbol="🌐")
     wait_for_internet()
