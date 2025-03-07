@@ -18,6 +18,8 @@ from utils import (
     print_status,
     print_separator
 )
+from utils.discord_notifier import DiscordNotifier
+from configparser import ConfigParser
 
 
 async def main():
@@ -45,6 +47,13 @@ async def main():
         print_status("Environment setup is incomplete. Please resolve the issues in the configuration file.", symbol="❌")
         return
 
+    # Initialize Discord Notifier
+    config = ConfigParser()
+    config.read(config_path)
+    discord_webhook = config.get('Discord', 'webhook_url')
+    notification_interval = config.get('Discord', 'notification_interval', fallback='1')
+    discord_notifier = DiscordNotifier(discord_webhook, notification_interval)
+
     # Start the continuous checking loop
     checked_counter = 1
     script_start_time = time.time()
@@ -68,7 +77,7 @@ async def main():
             # Check balances
             api_start_time = time.time()
             try:
-                balances_found = await run_checks(derived_addresses, mnemonic)
+                balances_found = await run_checks(derived_addresses, mnemonic, discord_notifier)
                 api_end_time = time.time()
                 last_api_check_duration = timedelta(seconds=(api_end_time - api_start_time))
 
@@ -83,6 +92,17 @@ async def main():
                 check_end_time = time.time()
                 last_check_duration = timedelta(seconds=(check_end_time - check_start_time))
                 total_elapsed_time = timedelta(seconds=(check_end_time - script_start_time))
+
+                # Send notification if we've reached the notification interval
+                if discord_notifier and checked_counter % int(discord_notifier.notification_interval) == 0:
+                    await discord_notifier.send_check_complete_notification(
+                        checked_counter,
+                        total_elapsed_time,
+                        last_check_duration,
+                        last_api_check_duration,
+                        last_balance_status,
+                        total_balances_found
+                    )
 
                 # Display status
                 clear_console()

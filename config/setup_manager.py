@@ -66,6 +66,34 @@ def setup_config():
     config = configparser.ConfigParser()
     config["DEFAULT"] = {"API_PROVIDERS": "ExplorerAPI"}
 
+    # Setup Discord notifications
+    while True:
+        use_discord = input("\n🎮 Do you want to enable Discord notifications? (yes/no): ").strip().lower()
+        if use_discord in ['yes', 'no']:
+            break
+        print("❌ Please enter 'yes' or 'no'")
+
+    if use_discord == 'yes':
+        config["Discord"] = {}
+        while True:
+            webhook_url = input("🔗 Enter your Discord webhook URL: ").strip()
+            if webhook_url.startswith('https://discord.com/api/webhooks/'):
+                config["Discord"]["webhook_url"] = webhook_url
+                break
+            print("❌ Invalid Discord webhook URL. It should start with 'https://discord.com/api/webhooks/'")
+        
+        while True:
+            try:
+                notification_interval = int(input("📊 Enter notification interval (number of operations before sending update, e.g. 100): "))
+                if notification_interval > 0:
+                    config["Discord"]["notification_interval"] = str(notification_interval)
+                    break
+                print("❌ Please enter a positive number")
+            except ValueError:
+                print("❌ Please enter a valid number")
+    else:
+        config["Discord"] = {"enabled": "false"}
+
     # Fetch supported networks using get_supported_networks()
     explorer_networks = list(get_supported_networks()['Bip44'].keys())
 
@@ -161,6 +189,29 @@ def validate_config(config_path):
 
     config_updated = False
     all_valid = True
+
+    # Validate Discord settings
+    if "Discord" in config:
+        if config["Discord"].get("enabled", "").lower() == "false":
+            pass  # Discord is explicitly disabled
+        else:
+            webhook_url = config["Discord"].get("webhook_url", "").strip()
+            if not webhook_url.startswith("https://discord.com/api/webhooks/"):
+                print("⚠️  Invalid Discord webhook URL")
+                all_valid = False
+            
+            try:
+                notification_interval = int(config["Discord"].get("notification_interval", "0"))
+                if notification_interval <= 0:
+                    raise ValueError
+            except ValueError:
+                print("⚠️  Invalid Discord notification interval. Setting default to 100.")
+                config["Discord"]["notification_interval"] = "100"
+                config_updated = True
+    else:
+        # Add default Discord section if missing
+        config["Discord"] = {"enabled": "false"}
+        config_updated = True
 
     # Validate mnemonic word count
     word_count = config["DEFAULT"].get("MNEMONIC_WORD_COUNT", "").strip()

@@ -1,5 +1,7 @@
 # utils/__init__.py
 
+# This file makes the utils directory a Python package
+
 from .console_helpers import ( 
     clear_console, 
     print_status, 

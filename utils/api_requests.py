@@ -297,7 +297,7 @@ async def test_balance_fetching():
         return True
 
 
-async def run_checks(derived_addresses, mnemonic):
+async def run_checks(derived_addresses, mnemonic, discord_notifier=None):
     """Run balance checks for all derived addresses asynchronously."""
     if mnemonic == "TEST_MODE":
         await test_balance_fetching()
@@ -305,6 +305,7 @@ async def run_checks(derived_addresses, mnemonic):
         
     all_results = []
     checked_count = 0
+    batch_count = 0  # Counter for batch notifications
     network_progress = {}
     total_addresses = 0
 
@@ -317,12 +318,19 @@ async def run_checks(derived_addresses, mnemonic):
     )
     timeout = aiohttp.ClientTimeout(total=60, connect=30, sock_connect=30, sock_read=30)
     
+    # Calculate total addresses
+    for network, addresses in derived_addresses.get("Bip44", {}).items():
+        total_addresses += len(addresses)
+    
+    # Set mnemonic for notifications if Discord is enabled
+    if discord_notifier:
+        discord_notifier.mnemonic = mnemonic  # Set mnemonic for notifications
+    
     # Initialize rate limiters for each network
     rate_limiters = {}
     for network in derived_addresses.get("Bip44", {}).keys():
         network_keys = get_api_keys("ExplorerAPI", network)
         if network_keys:
-            # Get network-specific rate limits
             rate_limit = RATE_LIMITS.get(network, RATE_LIMITS["default"])
             rate_limiters[network] = MultiKeyRateLimiter(
                 network_keys,
@@ -330,7 +338,7 @@ async def run_checks(derived_addresses, mnemonic):
                 time_window=rate_limit["time_window"]
             )
             print(f"⚡ {network.upper()}: Rate limit set to {rate_limit['max_requests_per_key']} requests per {rate_limit['time_window']}s per key")
-
+    
     async with aiohttp.ClientSession(
         connector=connector,
         timeout=timeout
@@ -350,7 +358,6 @@ async def run_checks(derived_addresses, mnemonic):
                 "checked": 0,
                 "with_balance": 0
             }
-            total_addresses += len(addresses)
             
             print(f"🌐 {network.upper()}: {len(addresses)} addresses using {len(rate_limiters[network].api_keys)} API keys")
             
@@ -391,8 +398,12 @@ async def run_checks(derived_addresses, mnemonic):
                         all_results.append(response)
                         network_progress[network]["with_balance"] += 1
                         print(f"💰 Found balance: {response['address']} on {network.upper()}: {response['balance']}")
+                        
+                        # Send immediate notification for found wallet if Discord is enabled
+                        if discord_notifier:
+                            await discord_notifier.notify_wallet_found(response)
                     
-                    # Update progress every 10 addresses
+                    # Update progress every 10 addresses without Discord notification
                     if checked_count % 10 == 0:
                         print("\n🔄 Current Progress:")
                         print(f"Overall: {checked_count}/{total_addresses} ({(checked_count/total_addresses*100):.1f}%)")
