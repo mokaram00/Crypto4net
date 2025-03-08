@@ -1,2 +1,8 @@
-aiohttp==3.10.11
-bip_utils==2.9.2
+aiohttp==3.9.3
+asyncio==3.4.3
+configparser==6.0.0
+mnemonic==0.20
+web3==6.15.1
+eth-account==0.10.0
+tronpy==0.4.0
+requests==2.31.0
