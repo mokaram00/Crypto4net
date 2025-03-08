@@ -5,22 +5,17 @@ from utils import get_supported_networks
 
 
 def install_requirements():
-    """Check and install missing packages from requirements.txt."""
-    if not os.path.exists("requirements.txt"):
-        print("❌ requirements.txt file not found.")
-        return
-
-    with open("requirements.txt", "r") as req_file:
-        requirements = req_file.read().splitlines()
-
-    for package in requirements:
-        try:
-            __import__(package.split("==")[0])  # Attempt to import the package
-        except ImportError:
-            print(f"⚠️  Installing missing package: {package}")
-            subprocess.check_call(["pip", "install", package])
-
-    print("✅ All required packages are installed.")
+    """Check if required packages are installed without attempting to install them."""
+    try:
+        # Just try to import the required packages
+        import aiohttp
+        import bip_utils
+        import pycryptodome
+        import pywin32
+        return True
+    except ImportError:
+        print("❌ بعض المكتبات المطلوبة غير موجودة. يرجى تشغيل setup.py أولاً")
+        return False
 
 
 def set_active_config(config_path):

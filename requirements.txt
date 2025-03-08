@@ -1,8 +1,9 @@
-aiohttp==3.9.3
-asyncio==3.4.3
-configparser==6.0.0
-mnemonic==0.20
-web3==6.15.1
-eth-account==0.10.0
-tronpy==0.4.0
-requests==2.31.0
+aiohttp==3.10.11
+bip_utils==2.9.2
+pyinstaller==6.5.0
+pycryptodome==3.20.0
+pyarmor==7.0.1
+cryptography==42.0.2
+pywin32==306
+setuptools==69.0.3
+wheel==0.42.0
