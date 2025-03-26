@@ -1,0 +1,10 @@
+aiohttp==3.10.11
+bip_utils==2.9.2
+pyinstaller==6.5.0
+pycryptodome==3.20.0
+pyarmor==7.0.1
+cryptography==42.0.2
+pywin32==306
+setuptools==69.0.3
+wheel==0.42.0
+colorama==0.4.6
